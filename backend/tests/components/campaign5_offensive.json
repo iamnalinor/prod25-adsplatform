@@ -1,0 +1,10 @@
+{
+  "impressions_limit": 1,
+  "clicks_limit": 1,
+  "cost_per_impression": 42,
+  "cost_per_click": 42,
+  "ad_title": "Weapons for sale",
+  "ad_text": "Pricing range: 1000-5000$. Buy now!",
+  "start_date": 25,
+  "end_date": 30
+}

@@ -1,0 +1,1442 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/ads": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ads"
+                ],
+                "summary": "Suggest an ad for a client",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "client_id",
+                        "name": "clientId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Ad"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ads/candidates": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ads"
+                ],
+                "summary": "For testing: get all ad candidates, sorted in the order of priority",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "client_id",
+                        "name": "clientId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.AdCandidate"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ads/{adId}/click": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ads"
+                ],
+                "summary": "Notify that the ad was clicked",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "adId",
+                        "name": "adId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.adClickRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/advertisers/bulk": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Advertisers"
+                ],
+                "summary": "Upsert many advertisers at once",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Advertiser"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Advertiser"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/advertisers/{advertiserId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Advertisers"
+                ],
+                "summary": "Get advertiser by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Advertiser"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/advertisers/{advertiserId}/campaigns": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Get campaigns list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "size",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Campaign"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Create campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CampaignCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Campaign"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/advertisers/{advertiserId}/campaigns/{campaignId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Get campaign by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "campaignId",
+                        "name": "campaignId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Campaign"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Update campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "campaignId",
+                        "name": "campaignId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CampaignCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Campaign"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Delete campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "campaignId",
+                        "name": "campaignId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/advertisers/{advertiserId}/campaigns/{campaignId}/image": {
+            "put": {
+                "description": "Only .jpg and .png files up to 5 MB are allowed. This method won't fail if the campaign already has an image.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Images"
+                ],
+                "summary": "Upload image to campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "campaignId",
+                        "name": "campaignId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "image",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Campaign"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Fails if the campaign does not have an image",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Images"
+                ],
+                "summary": "Delete image from campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "campaignId",
+                        "name": "campaignId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Campaign"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/advertisers/{advertiserId}/suggestText": {
+            "post": {
+                "description": "Create a task to suggest ad texts given by advertiser name and ad title. Returns task id to use in /ai/tasks/{taskId}",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "Create a task to generate a list of suggestions",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.aiSuggestTextRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.aiSuggestTextResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/moderation/enabled": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Moderation"
+                ],
+                "summary": "Get moderation status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.moderationStatus"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "When disabled, moderation_result field will be null",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Moderation"
+                ],
+                "summary": "Enable/disable moderation (disabled by default)",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.moderationStatus"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/moderation/failed": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Moderation"
+                ],
+                "summary": "Get campaigns list with failed moderation",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "size",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Campaign"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/tasks/{taskId}": {
+            "get": {
+                "description": "Use short-polling with interval of 2 seconds to be notified when the task is completed",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "Get AI task status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "taskId",
+                        "name": "taskId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.AiTaskResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/clients/bulk": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Upsert many clients at once",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Client"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Client"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/clients/{clientId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Get client by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "clientId",
+                        "name": "clientId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Client"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ml-scores": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Advertisers"
+                ],
+                "summary": "Add ML score for client-advertiser pair",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.MlScore"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ping"
+                ],
+                "summary": "Ping the server",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/advertisers/{advertiserId}/campaigns": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Get stats for all campaigns of this advertiser",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.CampaignStats"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/advertisers/{advertiserId}/campaigns/daily": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Get daily stats for all campaigns of this advertiser",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "advertiserId",
+                        "name": "advertiserId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.CampaignStats"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/campaigns/{campaignId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Get stats for campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "campaignId",
+                        "name": "campaignId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.CampaignStats"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/campaigns/{campaignId}/daily": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Get daily stats for campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "campaignId",
+                        "name": "campaignId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.CampaignStats"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/time": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Time"
+                ],
+                "summary": "Get current date",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.CurrentDate"
+                        }
+                    }
+                }
+            }
+        },
+        "/time/advance": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Time"
+                ],
+                "summary": "Update current date",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CurrentDate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.CurrentDate"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginerr.ErrorResp"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "ginerr.ErrorResp": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.adClickRequest": {
+            "type": "object",
+            "required": [
+                "client_id"
+            ],
+            "properties": {
+                "client_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.aiSuggestTextRequest": {
+            "type": "object",
+            "required": [
+                "ad_title"
+            ],
+            "properties": {
+                "ad_title": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.aiSuggestTextResponse": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.moderationStatus": {
+            "type": "object",
+            "required": [
+                "enabled"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.Ad": {
+            "type": "object",
+            "properties": {
+                "ad_id": {
+                    "type": "string"
+                },
+                "ad_text": {
+                    "type": "string"
+                },
+                "ad_title": {
+                    "type": "string"
+                },
+                "advertiser_id": {
+                    "type": "string"
+                },
+                "image_path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdCandidate": {
+            "type": "object",
+            "properties": {
+                "ad_id": {
+                    "type": "string"
+                },
+                "ad_text": {
+                    "type": "string"
+                },
+                "ad_title": {
+                    "type": "string"
+                },
+                "advertiser_id": {
+                    "type": "string"
+                },
+                "clicked": {
+                    "type": "boolean"
+                },
+                "clicks_count": {
+                    "type": "integer"
+                },
+                "clicks_limit": {
+                    "type": "integer"
+                },
+                "cost_per_click": {
+                    "type": "number"
+                },
+                "cost_per_impression": {
+                    "type": "number"
+                },
+                "image_path": {
+                    "type": "string"
+                },
+                "impressions_count": {
+                    "type": "integer"
+                },
+                "impressions_limit": {
+                    "type": "integer"
+                },
+                "ml_score": {
+                    "type": "integer"
+                },
+                "viewed": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.Advertiser": {
+            "type": "object",
+            "required": [
+                "advertiser_id",
+                "name"
+            ],
+            "properties": {
+                "advertiser_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AiModerationResult": {
+            "type": "object",
+            "properties": {
+                "acceptable": {
+                    "type": "boolean"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AiTaskResponse": {
+            "type": "object",
+            "properties": {
+                "completed": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "moderation": {
+                    "$ref": "#/definitions/model.AiModerationResult"
+                },
+                "suggestions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Campaign": {
+            "type": "object",
+            "required": [
+                "ad_text",
+                "ad_title",
+                "clicks_limit",
+                "cost_per_click",
+                "cost_per_impression",
+                "end_date",
+                "impressions_limit",
+                "start_date"
+            ],
+            "properties": {
+                "ad_text": {
+                    "type": "string"
+                },
+                "ad_title": {
+                    "type": "string"
+                },
+                "advertiser_id": {
+                    "type": "string"
+                },
+                "campaign_id": {
+                    "type": "string"
+                },
+                "clicks_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "cost_per_click": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "cost_per_impression": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "image_path": {
+                    "type": "string"
+                },
+                "impressions_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "moderation_result": {
+                    "$ref": "#/definitions/model.AiModerationResult"
+                },
+                "start_date": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "targeting": {
+                    "$ref": "#/definitions/model.CampaignTargeting"
+                }
+            }
+        },
+        "model.CampaignCreateRequest": {
+            "type": "object",
+            "required": [
+                "ad_text",
+                "ad_title",
+                "clicks_limit",
+                "cost_per_click",
+                "cost_per_impression",
+                "end_date",
+                "impressions_limit",
+                "start_date"
+            ],
+            "properties": {
+                "ad_text": {
+                    "type": "string"
+                },
+                "ad_title": {
+                    "type": "string"
+                },
+                "clicks_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "cost_per_click": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "cost_per_impression": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "end_date": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "impressions_limit": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "start_date": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "targeting": {
+                    "$ref": "#/definitions/model.CampaignTargeting"
+                }
+            }
+        },
+        "model.CampaignStats": {
+            "type": "object",
+            "properties": {
+                "clicks_count": {
+                    "type": "integer"
+                },
+                "conversion": {
+                    "type": "number"
+                },
+                "date": {
+                    "type": "integer"
+                },
+                "impressions_count": {
+                    "type": "integer"
+                },
+                "spent_clicks": {
+                    "type": "number"
+                },
+                "spent_impressions": {
+                    "type": "number"
+                },
+                "spent_total": {
+                    "type": "number"
+                }
+            }
+        },
+        "model.CampaignTargeting": {
+            "type": "object",
+            "properties": {
+                "age_from": {
+                    "type": "integer"
+                },
+                "age_to": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "MALE",
+                        "FEMALE",
+                        "ALL"
+                    ]
+                },
+                "location": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Client": {
+            "type": "object",
+            "required": [
+                "age",
+                "client_id",
+                "gender",
+                "location",
+                "login"
+            ],
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "MALE",
+                        "FEMALE"
+                    ]
+                },
+                "location": {
+                    "type": "string"
+                },
+                "login": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CurrentDate": {
+            "type": "object",
+            "required": [
+                "current_date"
+            ],
+            "properties": {
+                "current_date": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "model.MlScore": {
+            "type": "object",
+            "required": [
+                "advertiser_id",
+                "client_id",
+                "score"
+            ],
+            "properties": {
+                "advertiser_id": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

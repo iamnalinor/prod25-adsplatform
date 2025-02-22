@@ -1,0 +1,486 @@
+test_name: /stats endpoints group
+
+includes:
+  - !include components/setup.yaml
+  - !include components/cleanup.yaml
+
+stages:
+  - name: Check 404 when requesting stats for non-existent campaign
+    request:
+      url: "{BASE_URL}/stats/campaigns/00000000-0000-0000-0000-000000000042"
+    response:
+      status_code: 404
+
+  - name: Check 404 when requesting stats for non-existent advertiser
+    request:
+      url: "{BASE_URL}/stats/advertisers/00000000-0000-0000-0000-000000000042/campaigns"
+    response:
+      status_code: 404
+
+  - name: Check 404 when requesting daily stats for non-existent campaign
+    request:
+      url: "{BASE_URL}/stats/campaigns/00000000-0000-0000-0000-000000000042/daily"
+    response:
+      status_code: 404
+
+  - name: Check 404 when requesting daily stats for non-existent advertiser
+    request:
+      url: "{BASE_URL}/stats/advertisers/00000000-0000-0000-0000-000000000042/campaigns/daily"
+    response:
+      status_code: 404
+
+  - name: Check 400 when requesting stats with invalid campaign uuid
+    request:
+      url: "{BASE_URL}/stats/campaigns/not-a-uuid"
+    response:
+      status_code: 400
+
+  - name: Check 400 when requesting stats with invalid advertiser uuid
+    request:
+      url: "{BASE_URL}/stats/advertisers/not-a-uuid/campaigns"
+    response:
+      status_code: 400
+
+  - name: Check 400 when requesting daily stats with invalid campaign uuid
+    request:
+      url: "{BASE_URL}/stats/campaigns/not-a-uuid/daily"
+    response:
+      status_code: 400
+
+  - name: Check 400 when requesting daily stats with invalid advertiser uuid
+    request:
+      url: "{BASE_URL}/stats/advertisers/not-a-uuid/campaigns/daily"
+    response:
+      status_code: 400
+
+  - type: ref
+    id: setup_clients
+
+  - type: ref
+    id: setup_advertisers
+
+  - type: ref
+    id: setup_date
+
+  - name: Check that advertiser 1 does not have campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Check that advertiser 2 does not have campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - type: ref
+    id: setup_campaign1
+
+  - name: Create campaign 2 on behalf of advertiser 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign2.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign2.json
+      save:
+        json:
+          campaign2_id: campaign_id
+
+  - name: Create campaign 3 on behalf of advertiser 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign4_offensive.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign4_offensive.json
+      save:
+        json:
+          campaign3_id: campaign_id
+
+  - name: Get stats for campaign 1, should be empty
+    request:
+      url: "{BASE_URL}/stats/campaigns/{campaign1_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 0
+        clicks_count: 0
+        conversion: 0
+        spent_impressions: 0
+        spent_clicks: 0
+        spent_total: 0
+
+  - name: Get stats for advertiser 1, should be empty
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 0
+        clicks_count: 0
+        conversion: 0
+        spent_impressions: 0
+        spent_clicks: 0
+        spent_total: 0
+
+  - name: Get stats for campaign 3, should be empty
+    request:
+      url: "{BASE_URL}/stats/campaigns/{campaign3_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 0
+        clicks_count: 0
+        conversion: 0
+        spent_impressions: 0
+        spent_clicks: 0
+        spent_total: 0
+
+  - name: Get daily stats for advertiser 1, should be empty
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV1_ID}/campaigns/daily"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Set date to 20
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 20
+    response:
+      status_code: 200
+      json:
+        current_date: 20
+
+  - name: View random ad
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      save:
+        json:
+          ad1_id: ad_id
+
+  - name: Get stats for viewed ad
+    request:
+      url: "{BASE_URL}/stats/campaigns/{ad1_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 1
+        conversion: 0
+
+  - name: Click the ad
+    request:
+      url: "{BASE_URL}/ads/{ad1_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Get stats for clicked ad
+    request:
+      url: "{BASE_URL}/stats/campaigns/{ad1_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 1
+        clicks_count: 1
+        conversion: 100
+
+  - name: Get other ads (#1)
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      save:
+        json:
+          ad2_id: ad_id
+
+  - name: Set date to 25 (so we can get campaign3)
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 25
+    response:
+      status_code: 200
+      json:
+        current_date: 25
+
+  - name: Get other ads (#2), we should get campaign3
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign3_id}"
+      save:
+        json:
+          ad3_id: ad_id
+
+  - name: Check that limit for campaign3 was exceeded
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign2_id}"  # campaign1 end date is in the past, so only campaign2 can be returned
+
+  - name: Get stats for advertiser 1, check 2 views
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 2
+        spent_impressions: 6.5
+
+  - name: Get stats for advertiser 2, check 1 view
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV2_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 1
+        spent_impressions: 42
+
+  - name: Get stats for ad 3, check 1 view
+    request:
+      url: "{BASE_URL}/stats/campaigns/{ad3_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 1
+        conversion: 0
+
+  - name: Click second ad
+    request:
+      url: "{BASE_URL}/ads/{ad2_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Click third ad
+    request:
+      url: "{BASE_URL}/ads/{ad3_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Get stats for advertiser 1, check 2 views and 2 clicks
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 2
+        clicks_count: 2
+        conversion: 100
+        spent_impressions: 6.5
+        spent_clicks: 13.5
+        spent_total: 20
+
+  - name: Get stats for campaign 2, check 1 view and 1 click
+    request:
+      url: "{BASE_URL}/stats/campaigns/{campaign2_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 1
+        clicks_count: 1
+        conversion: 100
+        spent_impressions: 5
+        spent_clicks: 10
+        spent_total: 15
+
+  - name: Get stats for advertiser 2, check 1 view and 1 click
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV2_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 1
+        clicks_count: 1
+        conversion: 100
+        spent_impressions: 42
+        spent_clicks: 42
+        spent_total: 84
+
+  - name: Get ads from client 2
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT2_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign2_id}"
+
+  - name: Get stats for campaign 2, check 2 views
+    request:
+      url: "{BASE_URL}/stats/campaigns/{campaign2_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 2
+        clicks_count: 1
+        conversion: 50
+        spent_impressions: 10
+        spent_clicks: 10
+        spent_total: 20
+
+  - name: Click from client 2
+    request:
+      url: "{BASE_URL}/ads/{campaign2_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT2_ID}"
+    response:
+      status_code: 204
+
+  - name: Update campaign 2, increase impression cost
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: PUT
+      json:
+        impressions_limit: 1000
+        clicks_limit: 900
+        cost_per_impression: 50  # 5 => 50
+        cost_per_click: 10
+        ad_title: "DANO promo #2"
+        ad_text: "Want to try yourself in data analysis? Register for the DANO olympiad now!"
+        start_date: 15
+        end_date: 25
+        targeting:
+          age_to: 100
+    response:
+      status_code: 200
+      json:
+        cost_per_impression: 50
+        targeting:
+          age_to: 100
+
+  - name: Get ads from client 3
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT3_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign2_id}"
+
+  - name: Get ads from client 4
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT4_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign2_id}"
+
+  - name: Get stats for campaign 2, check 4 views
+    request:
+      url: "{BASE_URL}/stats/campaigns/{campaign2_id}"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 4
+        clicks_count: 2
+        conversion: 50
+        spent_impressions: 110  # 5 + 5 + 50 + 50
+        spent_clicks: 20
+        spent_total: 130
+
+  - name: Get stats for advertiser 1, check all views, clicks and revenue
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        impressions_count: 5
+        clicks_count: 3
+        conversion: 60
+        spent_impressions: 111.5  # 1.5 from campaign1 + 110 from campaign2
+        spent_clicks: 23.5  # 1.5 from campaign1 + 20 from campaign2
+        spent_total: 135
+
+  - name: Get daily stats for campaign 2
+    request:
+      url: "{BASE_URL}/stats/campaigns/{campaign2_id}/daily"
+    response:
+      status_code: 200
+      json:
+        - date: 20
+          impressions_count: 1
+          clicks_count: 1
+          conversion: 100
+          spent_impressions: 5
+          spent_clicks: 10
+          spent_total: 15
+        - date: 25
+          impressions_count: 3
+          clicks_count: 1
+          spent_impressions: 105  # 5 + 50 + 50
+          spent_clicks: 10
+          spent_total: 115
+
+  - name: Get daily stats for advertiser 1
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV1_ID}/campaigns/daily"
+    response:
+      status_code: 200
+      json:
+        - date: 20
+          impressions_count: 2
+          clicks_count: 1
+          conversion: 50
+          spent_impressions: 6.5
+          spent_clicks: 10
+          spent_total: 16.5
+        - date: 25
+          impressions_count: 3
+          clicks_count: 2
+          spent_impressions: 105  # 5 + 50 + 50
+          spent_clicks: 13.5  # 3.5 + 10
+          spent_total: 118.5
+
+  - name: Get daily stats for advertiser 2
+    request:
+      url: "{BASE_URL}/stats/advertisers/{ADV2_ID}/campaigns/daily"
+    response:
+      status_code: 200
+      json:
+        - date: 25
+          impressions_count: 1
+          clicks_count: 1
+          conversion: 100
+          spent_impressions: 42
+          spent_clicks: 42
+          spent_total: 84
+
+finally:
+  - type: ref
+    id: cleanup_campaign1
+
+  - type: ref
+    id: cleanup_campaign2
+
+  - type: ref
+    id: cleanup_campaign3

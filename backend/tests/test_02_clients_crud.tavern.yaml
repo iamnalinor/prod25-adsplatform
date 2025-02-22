@@ -1,0 +1,137 @@
+test_name: /clients endpoints group
+
+stages:
+  - name: Check status code for a non-existent client
+    request:
+      url: "{BASE_URL}/clients/00000000-0000-0000-0000-000000000042"
+    response:
+      status_code: 404
+
+  - name: Check uuid validation
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - client_id: not-a-uuid
+          login: solution
+          age: 42
+          location: Ducat Place II
+          gender: MALE
+    response:
+      status_code: 400
+
+  - name: Check missing fields validation
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - client_id: 922b6074-7054-4476-9bf0-c4b27c69947f
+          login: solution
+          age: 42
+    response:
+      status_code: 400
+
+  - name: Check age validation
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - client_id: 922b6074-7054-4476-9bf0-c4b27c69947f
+          login: solution
+          age: string
+          location: Ducat Place II
+          gender: MALE
+    response:
+      status_code: 400
+
+  - name: Check gender validation
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - client_id: 922b6074-7054-4476-9bf0-c4b27c69947f
+          login: solution
+          age: 42
+          location: Ducat Place II
+          gender: OTHER
+    response:
+      status_code: 400
+
+  - name: Import 1 client
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - !include components/client1.json
+    response:
+      status_code: 200
+      json:
+        - !include components/client1.json
+
+  - name: Get 1 client by id
+    request:
+      url: "{BASE_URL}/clients/{CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        !include components/client1.json
+
+  - name: Import 2 clients
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - !include components/client2.json
+        - !include components/client3.json
+    response:
+      status_code: 200
+      json:
+        - !include components/client2.json
+        - !include components/client3.json
+  
+  - name: Get client 3
+    request:
+      url: "{BASE_URL}/clients/{CLIENT3_ID}"
+    response:
+      status_code: 200
+      json:
+        !include components/client3.json
+
+  - name: Update client 3 and add client 4
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - client_id: "{CLIENT3_ID}"
+          login: "Client #3"
+          age: 65
+          location: "I'm just going insane"
+          gender: FEMALE
+        - !include components/client4.json
+    response:
+      status_code: 200
+      json:
+        - client_id: "{CLIENT3_ID}"
+          login: "Client #3"
+          age: 65
+          location: "I'm just going insane"
+          gender: FEMALE
+        - !include components/client4.json
+
+  - name: Get client 3 (updated)
+    request:
+      url: "{BASE_URL}/clients/{CLIENT3_ID}"
+    response:
+      status_code: 200
+      json:
+        client_id: "{CLIENT3_ID}"
+        location: "I'm just going insane"
+        gender: FEMALE
+
+  - name: Get client 4
+    request:
+      url: "{BASE_URL}/clients/{CLIENT4_ID}"
+    response:
+      status_code: 200
+      json:
+        !include components/client4.json

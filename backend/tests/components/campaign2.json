@@ -1,0 +1,15 @@
+{
+  "impressions_limit": 1000,
+  "clicks_limit": 900,
+  "cost_per_impression": 5,
+  "cost_per_click": 10,
+  "ad_title": "DANO promo #2",
+  "ad_text": "Want to try yourself in data analysis? Register for the DANO olympiad now!",
+  "start_date": 15,
+  "end_date": 25,
+  "targeting": {
+    "gender": "ALL",
+    "age_from": 10,
+    "age_to": 45
+  }
+}

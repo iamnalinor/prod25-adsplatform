@@ -1,0 +1,118 @@
+test_name: /ads endpoints group
+
+includes:
+  - !include components/setup.yaml
+
+stages:
+  - type: ref
+    id: setup_advertisers
+
+  - name: Rename advertiser 1
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - advertiser_id: "{ADV1_ID}"
+          name: "Центральный университет"
+    response:
+      status_code: 200
+      json:
+        - advertiser_id: "{ADV1_ID}"
+          name: "Центральный университет"
+
+  - name: Check 400 when passing invalid advertiser_id
+    request:
+      url: "{BASE_URL}/ai/advertisers/not-a-uuid/suggestText"
+      method: POST
+    response:
+      status_code: 400
+
+  - name: Check 404 when passing invalid advertiser_id
+    request:
+      url: "{BASE_URL}/ai/advertisers/00000000-0000-0000-0000-000000000042/suggestText"
+      method: POST
+    response:
+      status_code: 404
+
+  - name: Check 400 when creating request without params
+    request:
+      url: "{BASE_URL}/ai/advertisers/{ADV1_ID}/suggestText"
+      method: POST
+    response:
+      status_code: 400
+
+  - name: Check 400 when passing empty adTitle
+    request:
+      url: "{BASE_URL}/ai/advertisers/{ADV1_ID}/suggestText"
+      method: POST
+      json:
+        ad_title: ""
+    response:
+      status_code: 400
+
+  - name: Create a task with empty comment
+    request:
+      url: "{BASE_URL}/ai/advertisers/{ADV1_ID}/suggestText"
+      method: POST
+      json:
+        ad_title: "Олимпиада по промышленной разработке PROD"
+    response:
+      status_code: 200
+      save:
+        json:
+          task1_id: task_id
+
+  - name: Get task 1
+    request:
+      url: "{BASE_URL}/ai/tasks/{task1_id}"
+    response:
+      status_code: 200
+      json:
+        task_id: "{task1_id}"
+        completed: false
+
+  - name: Create a task with set comment
+    request:
+      url: "{BASE_URL}/ai/advertisers/{ADV1_ID}/suggestText"
+      method: POST
+      json:
+        ad_title: "Национальная олимпиада по анализу данных DANO"
+        comment: "Регистрация открыта до 4 октября"
+    response:
+      status_code: 200
+      save:
+        json:
+          task2_id: task_id
+
+  - name: Get task 2
+    request:
+      url: "{BASE_URL}/ai/tasks/{task2_id}"
+    response:
+      status_code: 200
+      json:
+        task_id: "{task2_id}"
+        completed: false
+
+  - name: Short-poll task 1 (5s x 30)
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/ai/tasks/{task1_id}"
+    response:
+      status_code: 200
+      json:
+        task_id: "{task1_id}"
+        completed: true
+        suggestions: !anylist
+
+  - name: Short-poll task 2 (5s x 30)
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/ai/tasks/{task2_id}"
+    response:
+      status_code: 200
+      json:
+        task_id: "{task2_id}"
+        completed: true
+        suggestions: !anylist

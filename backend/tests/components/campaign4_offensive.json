@@ -1,0 +1,10 @@
+{
+  "impressions_limit": 1,
+  "clicks_limit": 1,
+  "cost_per_impression": 42,
+  "cost_per_click": 42,
+  "ad_title": "Fuck everyone",
+  "ad_text": "(and you too)",
+  "start_date": 25,
+  "end_date": 30
+}

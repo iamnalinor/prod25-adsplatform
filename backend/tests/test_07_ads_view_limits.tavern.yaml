@@ -1,0 +1,108 @@
+test_name: /ads endpoints group
+
+includes:
+  - !include components/setup.yaml
+  - !include components/cleanup.yaml
+
+stages:
+  - type: ref
+    id: setup_clients
+
+  - type: ref
+    id: setup_advertisers
+
+  - type: ref
+    id: setup_date
+
+  - name: Check that advertiser 1 does not have campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Get ad candidates, should be empty
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Setup campaign 1 with views limit set to 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        impressions_limit: 2
+        clicks_limit: 2
+        cost_per_impression: 42
+        cost_per_click: 42
+        ad_title: "Ad with 2 views"
+        ad_text: "Ad text"
+        start_date: 0
+        end_date: 0
+    response:
+      status_code: 200
+      save:
+        json:
+          campaign1_id: campaign_id
+
+  - name: Get ad candidates, check that campaign 1 appeared
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          ad_title: "Ad with 2 views"
+          advertiser_id: "{ADV1_ID}"
+          clicked: false
+          impressions_count: 0
+          impressions_limit: 2
+
+  - name: Request getting ad from client 1
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign1_id}"
+        ad_title: "Ad with 2 views"
+
+  - name: Check that campaign 1 got 1 impression
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          impressions_count: 1
+
+  - name: Request getting ad from client 2
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT2_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign1_id}"
+        ad_title: "Ad with 2 views"
+
+  - name: Check that campaign 1 disappeared from candidates
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Request getting ad from client 3, should fail
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT3_ID}"
+    response:
+      status_code: 404
+
+finally:
+  - type: ref
+    id: cleanup_campaign1

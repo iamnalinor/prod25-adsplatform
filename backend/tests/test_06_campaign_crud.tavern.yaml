@@ -1,0 +1,578 @@
+test_name: /advertisers/{advertiserId}/campaigns endpoints group
+
+includes:
+  - !include components/setup.yaml
+  - !include components/cleanup.yaml
+
+stages:
+  - type: ref
+    id: setup_clients
+
+  - type: ref
+    id: setup_advertisers
+
+  - type: ref
+    id: setup_date
+
+  - name: Check 404 when listing campaigns for non-existent advertiser
+    request:
+      url: "{BASE_URL}/advertisers/00000000-0000-4242-0000-000000000000/campaigns"
+    response:
+      status_code: 404
+
+  - name: Check 404 when getting non-existent campaign
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/00000000-0000-0000-4242-000000000000"
+    response:
+      status_code: 404
+
+  - name: Check 404 when updating non-existent campaign
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns/00000000-4200-abcd-4242-000000000000"
+      method: PUT
+      json:
+        !include components/campaign1.json
+    response:
+      status_code: 404
+
+  - name: Check 404 when deleting non-existent campaign
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns/00000000-4200-abcd-4242-000000000000"
+      method: DELETE
+    response:
+      status_code: 404
+
+  - name: Check that there is no campaigns created (advertiser 1)
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      # For some reason `json: []` accepts non-empty lists
+      verify_response_with:
+        function: utils:empty
+
+  - name: Check that there is no campaigns created (advertiser 2)
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Check that there is no campaigns created (advertiser 3)
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Set date to 1337
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 1337
+    response:
+      status_code: 200
+      json:
+        current_date: 1337
+
+  - name: Check 409 Conflict when creating campaign with date in past
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign1.json
+    response:
+      status_code: 409
+
+  - name: Set date to 11
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 11
+    response:
+      status_code: 200
+      json:
+        current_date: 11
+
+  - name: Check 409 when creating campaign with start date in past
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign1.json
+    response:
+      status_code: 409
+
+  - name: Set date to 10, so campaign 1 will be able to create
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 10
+    response:
+      status_code: 200
+      json:
+        current_date: 10
+
+  - type: ref
+    id: setup_campaign1
+
+  - type: ref
+    id: setup_date
+
+  - name: Get campaign 1, validate body
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+    response:
+      status_code: 200
+      json:
+        !include components/campaign1.json
+
+  - name: Get campaign 1, validate campaign_id and advertiser_id
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign1_id}"
+        advertiser_id: "{ADV1_ID}"
+
+  - name: Get campaign 1 on behalf of advertiser 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns/{campaign1_id}"
+    response:
+      status_code: 403
+
+  - name: Get campaign 1 on behalf of advertiser 2 with validation skipped
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns/{campaign1_id}?testAdvertiserValidation=skip"
+    response:
+      status_code: 200
+
+  - name: Get campaign list for advertiser 1, verify ids
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign1_id}"
+          advertiser_id: "{ADV1_ID}"
+
+  - name: Create campaign 2 for advertiser 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign2.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign2.json
+      save:
+        json:
+          campaign2_id: campaign_id
+
+  - name: Get campaign 2 for advertiser 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+    response:
+      status_code: 200
+      json:
+        !include components/campaign2.json
+
+  - name: Get campaign list for advertiser 1, verify ids of 2 campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign1_id}"
+          advertiser_id: "{ADV1_ID}"
+        - campaign_id: "{campaign2_id}"
+          advertiser_id: "{ADV1_ID}"
+
+  - name: Test limits, set limit = 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns?size=1"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign1.json
+
+  - name: Test limits, set limit = 5
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns?size=5"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign1.json
+        - !include components/campaign2.json
+
+  - name: Test pagination, use page 1 with limit 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns?size=1&page=1"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign1.json
+
+  - name: Test pagination, use page 2 with limit 2 (should be empty)
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns?size=2&page=2"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Test pagination, use page 2 with limit 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns?size=1&page=2"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign2.json
+
+  - name: Test pagination, use page 42 with limit 5
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns?size=5&page=42"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Get campaign list for advertiser 1, verify bodies
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign1.json
+        - !include components/campaign2.json
+
+  - name: Get campaign list for advertiser 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Get campaign list for advertiser 3
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Create campaign 3 for advertiser 3
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign3.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign3.json
+      save:
+        json:
+          campaign3_id: campaign_id
+
+  - name: Get campaign 3 for advertiser 3, verify body
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns/{campaign3_id}"
+    response:
+      status_code: 200
+      json:
+        !include components/campaign3.json
+
+  - name: Get campaign list for advertiser 3, verify ids
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign3_id}"
+          advertiser_id: "{ADV3_ID}"
+
+  - name: Try updating using only part of fields
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        ad_title: "Hello"
+        ad_text: "Hello"
+    response:
+      status_code: 400
+
+  - name: Set date to 10
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 10
+    response:
+      status_code: 200
+      json:
+        current_date: 10
+
+  - name: Check that updating forbidden fields will fail after campaign start
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        !include components/campaign2.json
+    response:
+      status_code: 409
+
+  - name: Check that updating only start_date will fail
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        impressions_limit: 100
+        clicks_limit: 10
+        cost_per_impression: 1.5
+        cost_per_click: 3.5
+        ad_title: "PROD promo #1"
+        ad_text: "Participate in ultra-super-puper-new Software Engineering Olympiad - PROD!"
+        start_date: 9
+        end_date: 20
+    response:
+      status_code: 409
+
+  - name: Check that updating only end_date will fail
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        impressions_limit: 100
+        clicks_limit: 10
+        cost_per_impression: 1.5
+        cost_per_click: 3.5
+        ad_title: "PROD promo #1"
+        ad_text: "Participate in ultra-super-puper-new Software Engineering Olympiad - PROD!"
+        start_date: 10
+        end_date: 21
+    response:
+      status_code: 409
+
+  - name: Check that updating only impressions_limit will fail
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        impressions_limit: 101
+        clicks_limit: 10
+        cost_per_impression: 1.5
+        cost_per_click: 3.5
+        ad_title: "PROD promo #1"
+        ad_text: "Participate in ultra-super-puper-new Software Engineering Olympiad - PROD!"
+        start_date: 10
+        end_date: 20
+    response:
+      status_code: 409
+
+  - name: Set date to 21
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 21
+    response:
+      status_code: 200
+      json:
+        current_date: 21
+
+  - name: Check that updating only clicks_limit will fail
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        impressions_limit: 100
+        clicks_limit: 101
+        cost_per_impression: 1.5
+        cost_per_click: 3.5
+        ad_title: "PROD promo #1"
+        ad_text: "Participate in ultra-super-puper-new Software Engineering Olympiad - PROD!"
+        start_date: 10
+        end_date: 20
+    response:
+      status_code: 409
+
+  - name: Get campaign data, check that it is not changed
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+    response:
+      status_code: 200
+      json:
+        !include components/campaign1.json
+
+  - name: Try updating cost_per_click and cost_per_impression
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        impressions_limit: 100
+        clicks_limit: 10
+        cost_per_impression: 42
+        cost_per_click: 42
+        ad_title: "PROD promo #1"
+        ad_text: "Participate in ultra-super-puper-new Software Engineering Olympiad - PROD!"
+        start_date: 10
+        end_date: 20
+    response:
+      status_code: 200
+      json:
+        cost_per_impression: 42
+        cost_per_click: 42
+
+  - name: Check that campaign can be still updated with same data
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        !include components/campaign1.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign1.json
+
+  - name: Set date to 9
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 9
+    response:
+      status_code: 200
+      json:
+        current_date: 9
+
+  - name: Update campaign 1 for advertiser 1, using data from campaign 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        !include components/campaign2.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign2.json
+
+  - name: Get campaign 1, verify updated data
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign1_id}"
+        advertiser_id: "{ADV1_ID}"
+        ad_title: "DANO promo #2"
+        targeting:
+          location: null
+          gender: ALL
+
+  - name: Check old data for campaign 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+    response:
+      status_code: 200
+      json:
+        !include components/campaign2.json
+
+  - name: Set date to 14
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 14
+    response:
+      status_code: 200
+      json:
+        current_date: 14
+
+  - name: Update campaign 2 with data from campaign 3
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: PUT
+      json:
+        !include components/campaign3.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign3.json
+
+  - name: Get campaign 2, verify updated data
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+    response:
+      status_code: 200
+      json:
+        !include components/campaign3.json
+
+  - name: Get campaigns list for advertiser 1, check updated data
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign2.json
+        - !include components/campaign3.json
+
+  - name: Delete campaign 1 on behalf of advertiser 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns/{campaign1_id}"
+      method: DELETE
+    response:
+      status_code: 403
+
+  - name: Delete campaign 1 on behalf of advertiser 2 with validation skipped
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns/{campaign1_id}?testAdvertiserValidation=skip"
+      method: DELETE
+    response:
+      status_code: 204
+
+  - name: Delete campaign 2 for advertiser 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: DELETE
+    response:
+      status_code: 204
+
+  - name: Retry deleting campaign 2 for advertiser 1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: DELETE
+    response:
+      status_code: 404
+
+  - name: Retry deleting campaign 2 for advertiser 3
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns/{campaign2_id}"
+      method: DELETE
+    response:
+      status_code: 404
+
+  - name: Delete campaign 3 for advertiser 3
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns/{campaign3_id}"
+      method: DELETE
+    response:
+      status_code: 204
+
+finally:
+  - type: ref
+    id: cleanup_campaign1
+
+  - type: ref
+    id: cleanup_campaign2
+
+  - type: ref
+    id: cleanup_campaign3

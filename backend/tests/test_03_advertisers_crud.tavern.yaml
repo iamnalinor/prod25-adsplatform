@@ -1,0 +1,111 @@
+test_name: /advertisers endpoints group
+
+stages:
+  - name: Check status code for a non-existent advertiser
+    request:
+      url: "{BASE_URL}/advertisers/00000000-0000-0000-0000-000000000052"
+    response:
+      status_code: 404
+
+  - name: Check uuid validation
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - advertiser_id: not-a-uuid
+          name: Rust Corporation
+    response:
+      status_code: 400
+
+  - name: Check missing fields validation
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - advertiser_id: bab83804-5c56-48c0-9b0a-3eabee263a4f
+    response:
+      status_code: 400
+
+  - name: Check name validation by passing array
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - advertiser_id: 5ccbf195-a83e-49d2-9b2d-9c88aa9de5ad
+          name:
+            - Gophers Corporation
+            - Gophers Corporation 2
+            - Gophers Corporation 3
+    response:
+      status_code: 400
+
+  - name: Import 1 advertiser
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - !include components/adv1.json
+    response:
+      status_code: 200
+      json:
+        - !include components/adv1.json
+
+  - name: Get 1 advertiser by id
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}"
+    response:
+      status_code: 200
+      json:
+        !include components/adv1.json
+
+  - name: Update 1 advertiser and import 2 advertisers
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - advertiser_id: "{ADV1_ID}"
+          name: "Tinkoff Advertiser #1"
+        - !include components/adv2.json
+        - !include components/adv3.json
+    response:
+      status_code: 200
+      json:
+        - advertiser_id: "{ADV1_ID}"
+          name: "Tinkoff Advertiser #1"
+        - !include components/adv2.json
+        - !include components/adv3.json
+
+  - name: Get 1 advertiser by id (updated)
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}"
+    response:
+      status_code: 200
+      json:
+        advertiser_id: "{ADV1_ID}"
+        name: "Tinkoff Advertiser #1"
+
+  - name: Get 2 advertiser
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}"
+    response:
+      status_code: 200
+      json:
+        !include components/adv2.json
+
+  - name: Update 3 advertiser with invalid data
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - advertiser_id: "{ADV3_ID}"
+          name: 42  # not a string
+    response:
+      status_code: 400
+
+  - name: Get 3 advertiser (should not be updated)
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}"
+    response:
+      status_code: 200
+      json:
+        !include components/adv3.json

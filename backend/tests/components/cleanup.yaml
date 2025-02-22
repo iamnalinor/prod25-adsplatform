@@ -1,0 +1,26 @@
+name: Reusable component for deleting campaigns
+
+stages:
+  - name: Cleanup, delete campaign 1
+    id: cleanup_campaign1
+    request:
+      url: "{BASE_URL}/advertisers/x/campaigns/{campaign1_id}?testAdvertiserValidation=skip"
+      method: DELETE
+
+  - name: Cleanup, delete campaign 2
+    id: cleanup_campaign2
+    request:
+      url: "{BASE_URL}/advertisers/x/campaigns/{campaign2_id}?testAdvertiserValidation=skip"
+      method: DELETE
+
+  - name: Cleanup, delete campaign 3
+    id: cleanup_campaign3
+    request:
+      url: "{BASE_URL}/advertisers/x/campaigns/{campaign3_id}?testAdvertiserValidation=skip"
+      method: DELETE
+
+  - name: Cleanup, delete campaign 4
+    id: cleanup_campaign4
+    request:
+      url: "{BASE_URL}/advertisers/x/campaigns/{campaign4_id}?testAdvertiserValidation=skip"
+      method: DELETE

@@ -1,0 +1,412 @@
+test_name: /ai/moderation endpoints group
+
+includes:
+  - !include components/setup.yaml
+  - !include components/cleanup.yaml
+
+stages:
+  - name: Check that list of campaigns with failed moderation is empty
+    request:
+      url: "{BASE_URL}/ai/moderation/failed"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - type: ref
+    id: setup_advertisers
+
+  - type: ref
+    id: setup_date
+
+  - name: Check that advertiser 1 does not have any campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: GET
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Enable moderation
+    request:
+      url: "{BASE_URL}/ai/moderation/enabled"
+      method: POST
+      json:
+        enabled: true
+    response:
+      status_code: 204
+
+  - name: Check that moderation is enabled
+    request:
+      url: "{BASE_URL}/ai/moderation/enabled"
+    response:
+      status_code: 200
+      json:
+        enabled: true
+
+  - type: ref
+    id: setup_campaign1
+
+  - name: Get campaign 1, check that moderation_result is null right now
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign1_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+
+  - name: Create campaign 2 with offensive words
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign4_offensive.json
+    response:
+      status_code: 200
+      json:
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+      save:
+        json:
+          campaign2_id: campaign_id
+
+  - name: Get campaign 2, check that moderation_result is null right now
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign2_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+
+  - name: Create campaign 3 with offensive words
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign5_offensive.json
+    response:
+      status_code: 200
+      json:
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+      save:
+        json:
+          campaign3_id: campaign_id
+
+  - name: Create campaign 4 with offensive words
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign6_offensive.json
+    response:
+      status_code: 200
+      json:
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+      save:
+        json:
+          campaign4_id: campaign_id
+
+  - name: Short-poll campaign 1 (5s x 30), check that ad content is acceptable
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign1_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result:
+          acceptable: true
+          reason: ""
+
+  - name: Short-poll campaign 2 (5s x 30), check that ad content is not acceptable
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign2_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result:
+          acceptable: false
+          reason: !anystr
+
+  - name: Short-poll campaign 3 (5s x 30), check that ad content is not acceptable
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign3_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign3_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result:
+          acceptable: false
+          reason: !anystr
+
+  - name: Short-poll campaign 4 (5s x 30), check that ad content is not acceptable
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign4_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign4_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result:
+          acceptable: false
+          reason: !anystr
+
+  - name: Delete campaign 4
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign4_id}"
+      method: DELETE
+    response:
+      status_code: 204
+
+  - name: Check that campaigns with failed moderation appeared in the list
+    request:
+      url: "{BASE_URL}/ai/moderation/failed"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign4_offensive.json
+        - campaign_id: "{campaign3_id}"
+          advertiser_id: "{ADV1_ID}"
+          moderation_result:
+            acceptable: false
+            reason: !anystr
+
+  - name: Update campaign 1 with offensive words
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: PUT
+      json:
+        !include components/campaign4_offensive.json
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign1_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+
+  - name: Get campaign 1, check that moderation_result is null
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign1_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+
+  - name: Update campaign 2 with offensive words from campaign 3
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: PUT
+      json:
+        !include components/campaign5_offensive.json
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign2_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+
+  - name: Get campaign 2, check that moderation_result is null
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign2_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result: null
+
+  - name: Check that campaign 2 disappeared from failed moderation list
+    request:
+      url: "{BASE_URL}/ai/moderation/failed"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign3_id}"
+          advertiser_id: "{ADV1_ID}"
+          moderation_result:
+            acceptable: false
+            reason: !anystr
+
+  - name: Short-poll campaign 1 (5s x 30), check that ad content is not acceptable
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign1_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign1_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result:
+          acceptable: false
+          reason: !anystr
+
+  - name: Short-poll campaign 2 (5s x 30), check that ad content is not acceptable
+    delay_after: 5
+    max_retries: 30
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: GET
+    response:
+      status_code: 200
+      json:
+        campaign_id: "{campaign2_id}"
+        advertiser_id: "{ADV1_ID}"
+        moderation_result:
+          acceptable: false
+          reason: !anystr
+
+  - name: Get failed moderation list, check all 3 campaigns are there
+    request:
+      url: "{BASE_URL}/ai/moderation/failed"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign1_id}"
+          advertiser_id: "{ADV1_ID}"
+          moderation_result:
+            acceptable: false
+            reason: !anystr
+        - !include components/campaign5_offensive.json
+        - !include components/campaign5_offensive.json
+
+  - name: Check limit param for failed moderation list
+    request:
+      url: "{BASE_URL}/ai/moderation/failed?size=2"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign4_offensive.json
+        - !include components/campaign5_offensive.json
+
+  - name: Check page param for failed moderation list (size=1 page=1)
+    request:
+      url: "{BASE_URL}/ai/moderation/failed?size=1&page=1"
+    response:
+      status_code: 200
+      json:
+        - !include components/campaign4_offensive.json
+
+  - name: Check page param for failed moderation list (size=1 page=2)
+    request:
+      url: "{BASE_URL}/ai/moderation/failed?size=1&page=2"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign2_id}"
+          advertiser_id: "{ADV1_ID}"
+          moderation_result:
+            acceptable: false
+            reason: !anystr
+
+  - name: Check page param for failed moderation list (size=2 page=2)
+    request:
+      url: "{BASE_URL}/ai/moderation/failed?size=2&page=2"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign3_id}"
+          advertiser_id: "{ADV1_ID}"
+          moderation_result:
+            acceptable: false
+            reason: !anystr
+
+  - name: Check page param for failed moderation list (size=1 page=42)
+    request:
+      url: "{BASE_URL}/ai/moderation/failed?size=1&page=42"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Delete campaign 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns/{campaign2_id}"
+      method: DELETE
+    response:
+      status_code: 204
+
+  - name: Check that campaign 2 disappeared from the list
+    request:
+      url: "{BASE_URL}/ai/moderation/failed"
+    response:
+      status_code: 200
+      json:
+        - campaign_id: "{campaign1_id}"
+          advertiser_id: "{ADV1_ID}"
+          moderation_result:
+            acceptable: false
+            reason: !anystr
+        - campaign_id: "{campaign3_id}"
+          advertiser_id: "{ADV1_ID}"
+          moderation_result:
+            acceptable: false
+            reason: !anystr
+
+  - name: Disable moderation
+    request:
+      url: "{BASE_URL}/ai/moderation/enabled"
+      method: POST
+      json:
+        enabled: false
+    response:
+      status_code: 204
+
+  - name: Check that moderation is disabled
+    request:
+      url: "{BASE_URL}/ai/moderation/enabled"
+    response:
+      status_code: 200
+      json:
+        enabled: false
+
+finally:
+  - name: Disable moderation
+    request:
+      url: "{BASE_URL}/ai/moderation/enabled"
+      method: POST
+      json:
+        enabled: false
+    response:
+      status_code: 204
+
+  - type: ref
+    id: cleanup_campaign1
+
+  - type: ref
+    id: cleanup_campaign2
+
+  - type: ref
+    id: cleanup_campaign3
+
+  - type: ref
+    id: cleanup_campaign4

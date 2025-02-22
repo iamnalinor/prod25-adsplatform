@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  - name: postgres_backend
+    is_default: true
+    type: postgres
+    url: postgres_backend:5432
+    user: postgres
+    secureJsonData:
+      password: 'backend'
+    jsonData:
+      database: postgres
+      sslmode: 'disable'
+      maxOpenConns: 100
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      connMaxLifetime: 14400
+      postgresVersion: 166
+      timescaledb: false

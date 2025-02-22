@@ -1,0 +1,481 @@
+test_name: /ads endpoints group
+
+includes:
+  - !include components/setup.yaml
+  - !include components/cleanup.yaml
+
+stages:
+  - name: Check 400 when passing invalid client_id
+    request:
+      url: "{BASE_URL}/ads"
+      params:
+        client_id:
+          - "example array"
+    response:
+      status_code: 400
+
+  - name: Check 404 when requesting ad for non-existent client
+    request:
+      url: "{BASE_URL}/ads"
+      params:
+        client_id: "42000000-0000-0000-0000-000000000042"
+    response:
+      status_code: 404
+
+  - name: Check 400 when clicking with invalid and missing data
+    request:
+      url: "{BASE_URL}/ads/not-a-uuid/click"
+      method: POST
+    response:
+      status_code: 400
+
+  - name: Check 404 when clicking on non-existent ad
+    request:
+      url: "{BASE_URL}/ads/00000000-1234-0000-5678-000000000000/click"
+      method: POST
+      json:
+        client_id: "00000000-0000-0000-0000-000000000042"
+    response:
+      status_code: 404
+
+  - type: ref
+    id: setup_clients
+
+  - type: ref
+    id: setup_advertisers
+
+  - name: Check that advertiser 1 does not have campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Check that advertiser 2 does not have campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Check that advertiser 3 does not have campaigns
+    request:
+      url: "{BASE_URL}/advertisers/{ADV3_ID}/campaigns"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - type: ref
+    id: setup_date
+
+  - type: ref
+    id: setup_campaign1
+
+  - name: Get ad candidates, should be empty as campaign 1 didn't started yet
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+  - name: Set date to 10
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 10
+    response:
+      status_code: 200
+      json:
+        current_date: 10
+
+  - name: Set ml score for advertiser1-client1 pair to 5
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+        advertiser_id: "{ADV1_ID}"
+        score: 5
+    response:
+      status_code: 200
+
+  - name: Get ad candidates, check there's campaign1
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          ad_title: "PROD promo #1"
+          advertiser_id: "{ADV1_ID}"
+          clicked: false
+          viewed: false
+          ml_score: 5
+
+  - name: Request getting an ad
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign1_id}"
+        ad_title: "PROD promo #1"
+        ad_text: "Participate in ultra-super-puper-new Software Engineering Olympiad - PROD!"
+        advertiser_id: "{ADV1_ID}"
+        image_path: ""
+
+  - name: Get ad candidates, check that campaign1 was viewed
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+          impressions_count: 1
+          clicked: false
+          clicks_count: 0
+
+  - name: Request getting an ad again
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign1_id}"
+        ad_title: "PROD promo #1"
+        ad_text: "Participate in ultra-super-puper-new Software Engineering Olympiad - PROD!"
+        advertiser_id: "{ADV1_ID}"
+        image_path: ""
+
+  - name: Get ad candidates, check that campaign1 was viewed only once
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+          impressions_count: 1
+          clicked: false
+          clicks_count: 0
+
+  - name: Click to the ad from client 1
+    request:
+      url: "{BASE_URL}/ads/{campaign1_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Get ad candidates, check that campaign1 was clicked
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+          impressions_count: 1
+          clicked: true
+          clicks_count: 1
+
+  - name: Get ad from client 2
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT2_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign1_id}"
+        ad_title: "PROD promo #1"
+
+  - name: Get ad from client 3
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT3_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign1_id}"
+        ad_title: "PROD promo #1"
+
+  - name: Click to ad from client 3
+    request:
+      url: "{BASE_URL}/ads/{campaign1_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT3_ID}"
+    response:
+      status_code: 204
+
+  - name: Get ad candidates, check 3 impressions and 2 clicks
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT2_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+          impressions_count: 3
+          clicked: false
+          clicks_count: 2
+
+  - name: Create campaign 2 for advertiser 2
+    request:
+      url: "{BASE_URL}/advertisers/{ADV2_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign2.json
+    response:
+      status_code: 200
+      json:
+        !include components/campaign2.json
+      save:
+        json:
+          campaign2_id: campaign_id
+
+  - name: Add ml score for client1 - advertiser2 pair
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+        advertiser_id: "{ADV2_ID}"
+        score: 6
+    response:
+      status_code: 200
+
+  - name: Check that there's still only one candidate
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+
+  - name: Get ad (campaign1 as it's the only campaign started)
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign1_id}"
+        ad_title: "PROD promo #1"
+
+  - name: Set date to 15, so campaign 2 will start
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 15
+    response:
+      status_code: 200
+      json:
+        current_date: 15
+
+  - name: Try to click campaign2 (it was not viewed before)
+    request:
+      url: "{BASE_URL}/ads/{campaign2_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 409
+
+  - name: Get ad candidates, check campaign2 presence
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+          impressions_count: 3
+          clicked: true
+          clicks_count: 2
+        - ad_id: "{campaign2_id}"
+          viewed: false
+          impressions_count: 0
+          clicked: false
+
+  - name: Get ad (it should be campaign2)
+    request:
+      url: "{BASE_URL}/ads?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        ad_id: "{campaign2_id}"
+        ad_title: "DANO promo #2"
+
+  - name: Get ad candidates, check campaign2 was viewed
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+          impressions_count: 3
+          clicked: true
+          clicks_count: 2
+        - ad_id: "{campaign2_id}"
+          viewed: true
+          impressions_count: 1
+          clicked: false
+          clicks_count: 0
+
+  - name: Try to click campaign2 many times (#1)
+    request:
+      url: "{BASE_URL}/ads/{campaign2_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Try to click campaign2 many times (#2)
+    request:
+      url: "{BASE_URL}/ads/{campaign2_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Try to click campaign2 many times (#3)
+    request:
+      url: "{BASE_URL}/ads/{campaign2_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Try to click campaign2 many times (#4)
+    request:
+      url: "{BASE_URL}/ads/{campaign2_id}/click"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+    response:
+      status_code: 204
+
+  - name: Get ad candidates, check campaign2 was clicked
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+          impressions_count: 3
+          clicked: true
+          clicks_count: 2
+        - ad_id: "{campaign2_id}"
+          viewed: true
+          impressions_count: 1
+          clicked: true
+          clicks_count: 1
+
+  - name: Create campaign 3
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include components/campaign4_offensive.json  # campaign3.json has targeting set
+    response:
+      status_code: 200
+      json:
+        !include components/campaign4_offensive.json
+      save:
+        json:
+          campaign3_id: campaign_id
+
+  - name: Check that there's no campaign 3 in candidates
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        - ad_id: "{campaign1_id}"
+          viewed: true
+        - ad_id: "{campaign2_id}"
+          viewed: true
+
+  - name: Set date to 25
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 25
+    response:
+      status_code: 200
+      json:
+        current_date: 25
+
+  - name: Check that campaign 3 appeared in candidates
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        # campaign1 disappears because of end_date
+        - ad_id: "{campaign2_id}"
+          viewed: true
+        - ad_id: "{campaign3_id}"
+          viewed: false
+
+  - name: Set date to 30
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 30
+    response:
+      status_code: 200
+      json:
+        current_date: 30
+
+  - name: Check that campaign 3 still in candidates
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      json:
+        # campaign2 disappears too
+        - ad_id: "{campaign3_id}"
+          viewed: false
+
+  - name: Set date to 35
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 35
+    response:
+      status_code: 200
+      json:
+        current_date: 35
+
+  - name: Check that campaign 3 disappeared from candidates
+    request:
+      url: "{BASE_URL}/ads/candidates?client_id={CLIENT1_ID}"
+    response:
+      status_code: 200
+      verify_response_with:
+        function: utils:empty
+
+finally:
+  - type: ref
+    id: cleanup_campaign1
+
+  - type: ref
+    id: cleanup_campaign2
+
+  - type: ref
+    id: cleanup_campaign3

@@ -1,0 +1,75 @@
+test_name: POST /ml-scores endpoint
+
+includes:
+- !include components/setup.yaml
+
+stages:
+  - name: Check status code for a non-existent advertiser
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        client_id: 12340000-0000-0000-0000-000000000000
+        advertiser_id: 56780000-0000-0000-0000-000000000000
+        score: 42
+    response:
+      status_code: 404
+
+  - name: Completely ignore request structure
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        - "haha"
+    response:
+      status_code: 400
+
+  - type: ref
+    id: setup_clients
+
+  - type: ref
+    id: setup_advertisers
+
+  - name: Set score for client 1 and advertiser 1
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        client_id: "{CLIENT1_ID}"
+        advertiser_id: "{ADV1_ID}"
+        score: 0
+    response:
+      status_code: 200
+
+  - name: Confuse client and advertiser ids, should fail
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        client_id: "{ADV2_ID}"
+        advertiser_id: "{CLIENT2_ID}"
+        score: 42
+    response:
+      status_code: 404
+
+  - name: Set high score for client 4 and advertiser 3
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        client_id: "{CLIENT4_ID}"
+        advertiser_id: "{ADV3_ID}"
+        score: 999999
+    response:
+      status_code: 200
+
+  - name: Set high score for client 4 and advertiser 3 (repeat)
+    request:
+      url: "{BASE_URL}/ml-scores"
+      method: POST
+      json:
+        client_id: "{CLIENT4_ID}"
+        advertiser_id: "{ADV3_ID}"
+        score: 999999
+    response:
+      status_code: 200

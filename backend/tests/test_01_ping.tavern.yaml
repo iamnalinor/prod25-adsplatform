@@ -1,0 +1,8 @@
+test_name: Health-check
+
+stages:
+  - name: "Check ping"
+    request:
+      url: "{BASE_URL}/ping"
+    response:
+      status_code: 200

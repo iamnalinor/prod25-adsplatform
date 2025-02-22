@@ -1,0 +1,955 @@
+definitions:
+  ginerr.ErrorResp:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  handler.adClickRequest:
+    properties:
+      client_id:
+        type: string
+    required:
+    - client_id
+    type: object
+  handler.aiSuggestTextRequest:
+    properties:
+      ad_title:
+        type: string
+      comment:
+        type: string
+    required:
+    - ad_title
+    type: object
+  handler.aiSuggestTextResponse:
+    properties:
+      task_id:
+        type: string
+    type: object
+  handler.moderationStatus:
+    properties:
+      enabled:
+        type: boolean
+    required:
+    - enabled
+    type: object
+  model.Ad:
+    properties:
+      ad_id:
+        type: string
+      ad_text:
+        type: string
+      ad_title:
+        type: string
+      advertiser_id:
+        type: string
+      image_path:
+        type: string
+    type: object
+  model.AdCandidate:
+    properties:
+      ad_id:
+        type: string
+      ad_text:
+        type: string
+      ad_title:
+        type: string
+      advertiser_id:
+        type: string
+      clicked:
+        type: boolean
+      clicks_count:
+        type: integer
+      clicks_limit:
+        type: integer
+      cost_per_click:
+        type: number
+      cost_per_impression:
+        type: number
+      image_path:
+        type: string
+      impressions_count:
+        type: integer
+      impressions_limit:
+        type: integer
+      ml_score:
+        type: integer
+      viewed:
+        type: boolean
+    type: object
+  model.Advertiser:
+    properties:
+      advertiser_id:
+        type: string
+      name:
+        type: string
+    required:
+    - advertiser_id
+    - name
+    type: object
+  model.AiModerationResult:
+    properties:
+      acceptable:
+        type: boolean
+      reason:
+        type: string
+    type: object
+  model.AiTaskResponse:
+    properties:
+      completed:
+        type: boolean
+      created_at:
+        type: string
+      moderation:
+        $ref: '#/definitions/model.AiModerationResult'
+      suggestions:
+        items:
+          type: string
+        type: array
+      task_id:
+        type: string
+    type: object
+  model.Campaign:
+    properties:
+      ad_text:
+        type: string
+      ad_title:
+        type: string
+      advertiser_id:
+        type: string
+      campaign_id:
+        type: string
+      clicks_limit:
+        minimum: 0
+        type: integer
+      cost_per_click:
+        minimum: 0
+        type: number
+      cost_per_impression:
+        minimum: 0
+        type: number
+      created_at:
+        type: string
+      end_date:
+        minimum: 0
+        type: integer
+      image_path:
+        type: string
+      impressions_limit:
+        minimum: 0
+        type: integer
+      moderation_result:
+        $ref: '#/definitions/model.AiModerationResult'
+      start_date:
+        minimum: 0
+        type: integer
+      targeting:
+        $ref: '#/definitions/model.CampaignTargeting'
+    required:
+    - ad_text
+    - ad_title
+    - clicks_limit
+    - cost_per_click
+    - cost_per_impression
+    - end_date
+    - impressions_limit
+    - start_date
+    type: object
+  model.CampaignCreateRequest:
+    properties:
+      ad_text:
+        type: string
+      ad_title:
+        type: string
+      clicks_limit:
+        minimum: 0
+        type: integer
+      cost_per_click:
+        minimum: 0
+        type: number
+      cost_per_impression:
+        minimum: 0
+        type: number
+      end_date:
+        minimum: 0
+        type: integer
+      impressions_limit:
+        minimum: 0
+        type: integer
+      start_date:
+        minimum: 0
+        type: integer
+      targeting:
+        $ref: '#/definitions/model.CampaignTargeting'
+    required:
+    - ad_text
+    - ad_title
+    - clicks_limit
+    - cost_per_click
+    - cost_per_impression
+    - end_date
+    - impressions_limit
+    - start_date
+    type: object
+  model.CampaignStats:
+    properties:
+      clicks_count:
+        type: integer
+      conversion:
+        type: number
+      date:
+        type: integer
+      impressions_count:
+        type: integer
+      spent_clicks:
+        type: number
+      spent_impressions:
+        type: number
+      spent_total:
+        type: number
+    type: object
+  model.CampaignTargeting:
+    properties:
+      age_from:
+        type: integer
+      age_to:
+        type: integer
+      gender:
+        enum:
+        - MALE
+        - FEMALE
+        - ALL
+        type: string
+      location:
+        type: string
+    type: object
+  model.Client:
+    properties:
+      age:
+        minimum: 0
+        type: integer
+      client_id:
+        type: string
+      gender:
+        enum:
+        - MALE
+        - FEMALE
+        type: string
+      location:
+        type: string
+      login:
+        type: string
+    required:
+    - age
+    - client_id
+    - gender
+    - location
+    - login
+    type: object
+  model.CurrentDate:
+    properties:
+      current_date:
+        minimum: 0
+        type: integer
+    required:
+    - current_date
+    type: object
+  model.MlScore:
+    properties:
+      advertiser_id:
+        type: string
+      client_id:
+        type: string
+      score:
+        type: integer
+    required:
+    - advertiser_id
+    - client_id
+    - score
+    type: object
+info:
+  contact: {}
+paths:
+  /ads:
+    get:
+      parameters:
+      - description: client_id
+        in: query
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Ad'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Suggest an ad for a client
+      tags:
+      - Ads
+  /ads/{adId}/click:
+    post:
+      parameters:
+      - description: adId
+        in: path
+        name: adId
+        required: true
+        type: string
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.adClickRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Notify that the ad was clicked
+      tags:
+      - Ads
+  /ads/candidates:
+    get:
+      parameters:
+      - description: client_id
+        in: query
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.AdCandidate'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: 'For testing: get all ad candidates, sorted in the order of priority'
+      tags:
+      - Ads
+  /advertisers/{advertiserId}:
+    get:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Advertiser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get advertiser by id
+      tags:
+      - Advertisers
+  /advertisers/{advertiserId}/campaigns:
+    get:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      - description: size
+        in: query
+        name: size
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Campaign'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get campaigns list
+      tags:
+      - Campaigns
+    post:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CampaignCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Campaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Create campaign
+      tags:
+      - Campaigns
+  /advertisers/{advertiserId}/campaigns/{campaignId}:
+    delete:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      - description: campaignId
+        in: path
+        name: campaignId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Delete campaign
+      tags:
+      - Campaigns
+    get:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      - description: campaignId
+        in: path
+        name: campaignId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Campaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get campaign by id
+      tags:
+      - Campaigns
+    put:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      - description: campaignId
+        in: path
+        name: campaignId
+        required: true
+        type: string
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CampaignCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Campaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Update campaign
+      tags:
+      - Campaigns
+  /advertisers/{advertiserId}/campaigns/{campaignId}/image:
+    delete:
+      description: Fails if the campaign does not have an image
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      - description: campaignId
+        in: path
+        name: campaignId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Campaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Delete image from campaign
+      tags:
+      - Images
+    put:
+      description: Only .jpg and .png files up to 5 MB are allowed. This method won't
+        fail if the campaign already has an image.
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      - description: campaignId
+        in: path
+        name: campaignId
+        required: true
+        type: string
+      - description: image
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Campaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Upload image to campaign
+      tags:
+      - Images
+  /advertisers/bulk:
+    post:
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.Advertiser'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Advertiser'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Upsert many advertisers at once
+      tags:
+      - Advertisers
+  /ai/advertisers/{advertiserId}/suggestText:
+    post:
+      description: Create a task to suggest ad texts given by advertiser name and
+        ad title. Returns task id to use in /ai/tasks/{taskId}
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.aiSuggestTextRequest'
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.aiSuggestTextResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Create a task to generate a list of suggestions
+      tags:
+      - AI
+  /ai/moderation/enabled:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.moderationStatus'
+      summary: Get moderation status
+      tags:
+      - Moderation
+    post:
+      description: When disabled, moderation_result field will be null
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.moderationStatus'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Enable/disable moderation (disabled by default)
+      tags:
+      - Moderation
+  /ai/moderation/failed:
+    get:
+      parameters:
+      - description: size
+        in: query
+        name: size
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Campaign'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get campaigns list with failed moderation
+      tags:
+      - Moderation
+  /ai/tasks/{taskId}:
+    get:
+      description: Use short-polling with interval of 2 seconds to be notified when
+        the task is completed
+      parameters:
+      - description: taskId
+        in: path
+        name: taskId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AiTaskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get AI task status
+      tags:
+      - AI
+  /clients/{clientId}:
+    get:
+      parameters:
+      - description: clientId
+        in: path
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Client'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get client by id
+      tags:
+      - Clients
+  /clients/bulk:
+    post:
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.Client'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Client'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Upsert many clients at once
+      tags:
+      - Clients
+  /ml-scores:
+    post:
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.MlScore'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Add ML score for client-advertiser pair
+      tags:
+      - Advertisers
+  /ping:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Ping the server
+      tags:
+      - Ping
+  /stats/advertisers/{advertiserId}/campaigns:
+    get:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.CampaignStats'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get stats for all campaigns of this advertiser
+      tags:
+      - Stats
+  /stats/advertisers/{advertiserId}/campaigns/daily:
+    get:
+      parameters:
+      - description: advertiserId
+        in: path
+        name: advertiserId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.CampaignStats'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get daily stats for all campaigns of this advertiser
+      tags:
+      - Stats
+  /stats/campaigns/{campaignId}:
+    get:
+      parameters:
+      - description: campaignId
+        in: path
+        name: campaignId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.CampaignStats'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get stats for campaign
+      tags:
+      - Stats
+  /stats/campaigns/{campaignId}/daily:
+    get:
+      parameters:
+      - description: campaignId
+        in: path
+        name: campaignId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.CampaignStats'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Get daily stats for campaign
+      tags:
+      - Stats
+  /time:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.CurrentDate'
+      summary: Get current date
+      tags:
+      - Time
+  /time/advance:
+    post:
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CurrentDate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.CurrentDate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginerr.ErrorResp'
+      summary: Update current date
+      tags:
+      - Time
+swagger: "2.0"

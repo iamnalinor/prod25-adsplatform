@@ -1,0 +1,63 @@
+name: Reusable component for creating clients and advertisers
+
+stages:
+  - name: Import 4 clients
+    id: setup_clients
+    request:
+      url: "{BASE_URL}/clients/bulk"
+      method: POST
+      json:
+        - !include client1.json
+        - !include client2.json
+        - !include client3.json
+        - !include client4.json
+    response:
+      status_code: 200
+      json:
+        - !include client1.json
+        - !include client2.json
+        - !include client3.json
+        - !include client4.json
+
+  - name: Import 3 advertisers
+    id: setup_advertisers
+    request:
+      url: "{BASE_URL}/advertisers/bulk"
+      method: POST
+      json:
+        - !include adv1.json
+        - !include adv2.json
+        - !include adv3.json
+    response:
+      status_code: 200
+      json:
+        - !include adv1.json
+        - !include adv2.json
+        - !include adv3.json
+
+  - name: Reset date to 0
+    id: setup_date
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 0
+    response:
+      status_code: 200
+      json:
+        current_date: 0
+
+  - name: Create campaign 1 for advertiser 1
+    id: setup_campaign1
+    request:
+      url: "{BASE_URL}/advertisers/{ADV1_ID}/campaigns"
+      method: POST
+      json:
+        !include campaign1.json
+    response:
+      status_code: 200
+      json:
+        !include campaign1.json
+      save:
+        json:
+          campaign1_id: campaign_id

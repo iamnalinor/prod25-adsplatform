@@ -1,0 +1,103 @@
+secrets:
+  admin_bot_token:
+    file: secrets/admin_bot_token.txt
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama/models
+    mem_limit: 6g
+    cpus: 4
+
+  postgres_backend:
+    image: postgres:16.6
+    environment:
+      - POSTGRES_PASSWORD=backend
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_backend_data:/var/lib/postgresql/data
+      - ./schemas/backend.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: backend
+    environment:
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=backend
+      - POSTGRES_HOST=postgres_backend
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=postgres
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=gemma2:2b
+      - MEDIA_FS_PATH=/mnt/media
+      - MEDIA_BASE_URL=/media
+      - CI=${CI}
+    volumes:
+      - media:/mnt/media
+    depends_on:
+      ollama:
+        condition: service_started
+      postgres_backend:
+        condition: service_healthy
+
+  grafana:
+    build:
+      context: grafana
+    restart: on-failure
+    depends_on:
+      postgres_backend:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: nginx
+    restart: on-failure
+    volumes:
+      - media:/mnt/media
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+      grafana:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: on-failure
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  tg_bot:
+    build:
+      context: tg_bot
+    environment:
+      - API_BASE_URL=http://nginx
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      nginx:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    secrets:
+      - admin_bot_token
+
+volumes:
+  ollama_data:
+  postgres_backend_data:
+  grafana_data:
+  media:
+  redis_data:

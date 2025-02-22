@@ -1,0 +1,93 @@
+test_name: POST /time/advance endpoint
+
+includes:
+  - !include components/setup.yaml
+
+stages:
+  - type: ref
+    id: setup_date
+
+  - name: Set date to 1
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 1
+    response:
+      status_code: 200
+      json:
+        current_date: 1
+
+  - name: Check date is 1
+    request:
+      url: "{BASE_URL}/time"
+    response:
+      status_code: 200
+      json:
+        current_date: 1
+
+  - name: Set date to 42
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 42
+    response:
+      status_code: 200
+      json:
+        current_date: 42
+
+  - name: Check date is 42
+    request:
+      url: "{BASE_URL}/time"
+    response:
+      status_code: 200
+      json:
+        current_date: 42
+
+  - name: Set date to same value
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: 42
+    response:
+      status_code: 200
+      json:
+        current_date: 42
+
+  - name: Check date is 42
+    request:
+      url: "{BASE_URL}/time"
+    response:
+      status_code: 200
+      json:
+        current_date: 42
+
+  - name: Request without values
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json: {}
+    response:
+      status_code: 400
+
+  - name: Request with negative date
+    request:
+      url: "{BASE_URL}/time/advance"
+      method: POST
+      json:
+        current_date: -1
+    response:
+      status_code: 400
+
+  - name: Check date is 42
+    request:
+      url: "{BASE_URL}/time"
+    response:
+      status_code: 200
+      json:
+        current_date: 42
+
+  - type: ref
+    id: setup_date
